@@ -3,4 +3,6 @@
 *.o
 *.symvers
 *.mod.c
-*.gitignore
+*.o.cmd
+*.ko.cmd
+.tem_versions/
