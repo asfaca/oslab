@@ -1,6 +1,0 @@
-*.order
-*.ko
-*.o
-*.symvers
-*.mod.c
-*.gitignore
