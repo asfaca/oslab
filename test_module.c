@@ -10,7 +10,7 @@
 struct io_desc {
 	struct timespec time;
 	sector_t sector_num;
-}
+};
 
 /*global variables*/
 struct io_desc cir_que[QUESIZE];

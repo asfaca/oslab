@@ -3,3 +3,4 @@
 *.o
 *.symvers
 *.mod.c
+*.gitignore
