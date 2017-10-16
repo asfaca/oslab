@@ -6,18 +6,33 @@
 
 #define QUESIZE 100
 
-/*data structure declearation for this module*/
+/*declearation for this module*/
 struct io_desc {
 	struct timespec time;
 	sector_t sector_num;
 };
+
+static int my_open(struct inode *inode, struct file *file) {
+	printk(KERN_ALERT, "my open function\n");
+	return 0;
+}
+
+static int my_write(struct file *file, const char __user *user_buffer, 
+		    size_t count, loff_t *ppos) {
+	printk(KERN_ALERT, "my write function\n");
+	return 0;
+}
+
 
 /*global variables*/
 struct io_desc cir_que[QUESIZE];
 int que_count = 0;
 struct proc_dir_entry *my_proc_dir;
 struct proc_dir_entry *my_proc_file;
-struct file_operations myproc_fops = { .owner = THIS_MODULE };
+struct file_operations myproc_fops = { .owner = THIS_MODULE,
+				       .open = my_open, 
+				       .write = my_write,
+};
 
 static int __init init_my_module(void) {
 	my_proc_dir = proc_mkdir("oslab_dir", NULL);
