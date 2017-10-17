@@ -37,33 +37,33 @@ static int my_open(struct inode *inode, struct file *file) {
 static ssize_t my_write(struct file *file, const char __user *user_buffer, 
 		   size_t count, loff_t *ppos) {
 	int i;
-	int namesize = sizeof(myioque->que[0].name);
-	int timesize = sizeof(myioque->que[0].time.tv_sec);
-	int blknumsize = sizeof(myioque->que[0].sector_num);
+	int namesize = sizeof(myioque.que[0].name);
+	int timesize = sizeof(myioque.que[0].time.tv_sec);
+	int blknumsize = sizeof(myioque.que[0].sector_num);
 
 	/*check proc buffer size*/
 	if (my_curr_fp + namesize + timesize + blknumsize >= PROCSIZE)
 		return 0;
 
 	for (i = 0; i < QUESIZE; i++) {
-		if (copy_from_user(&my_proc_buf[my_curr_fp], myioque->que[i].name, namesize)) {
+		if (copy_from_user(&my_proc_buf[my_curr_fp], (char *)myioque.que[i].name, namesize)) {
 			return -EFAULT;
 		}
 		my_curr_fp += namesize;
-		if (copy_from_user(&my_proc_buf[my_curr_fp], myioque->que[i].time.tv_sec, timesize)) {
+		if (copy_from_user(&my_proc_buf[my_curr_fp], (long *)myioque.que[i].time.tv_sec, timesize)) {
 			return -EFAULT;
 		}
 		my_curr_fp += timesize;
-		if (copy_from_user(&my_proc_buf[my_curr_fp], myioque->que[i].sector_num, blknumsize)) {
+		if (copy_from_user(&my_proc_buf[my_curr_fp], (sector_t *)myioque.que[i].sector_num, blknumsize)) {
 			return -EFAULT;
 		}
 		my_curr_fp += blknumsize;
 	}
 
 	/*init queue*/	
-	que->que_count = 0;
-	que->fir_index = 0;
-	que->curr_index = 0;
+	myioque.que_count = 0;
+	myioque.fir_index = 0;
+	myioque.curr_index = 0;
 
 	printk("my write function\n");
 	return 0;
@@ -114,11 +114,10 @@ static void __exit exit_my_module(void) {
 
 
 int add_myioque(struct bio *bio) {
-	struct myio_cir_que *que = myioque;
-	struct proc_dir_entry *file = my_proc_file;
+	struct myio_cir_que *que = &myioque;
 	/*need routine for exception of print_que_to_proc failure*/
 	if (que->que_count == QUESIZE) {
-		if (file->proc_fops->write(NULL,NULL,0,NULL)) < 0)
+		if (my_proc_file->proc_fops->write(NULL,NULL,0,NULL) < 0)
 			return -1;
 	}
 	/*store data*/
