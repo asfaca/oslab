@@ -24,7 +24,6 @@ struct myio_cir_que {
 };
 
 struct myio_cir_que myioque; 
-EXPORT_SYMBOL(myioque);
 
 static char my_proc_buf[PROCSIZE];
 int my_curr_fp = 0;
@@ -41,6 +40,11 @@ static ssize_t my_write(struct file *file, const char __user *user_buffer,
 	int namesize = sizeof(myioque->que[0].name);
 	int timesize = sizeof(myioque->que[0].time.tv_sec);
 	int blknumsize = sizeof(myioque->que[0].sector_num);
+
+	/*check proc buffer size*/
+	if (my_curr_fp + namesize + timesize + blknumsize >= PROCSIZE)
+		return 0;
+
 	for (i = 0; i < QUESIZE; i++) {
 		if (copy_from_user(&my_proc_buf[my_curr_fp], myioque->que[i].name, namesize)) {
 			return -EFAULT;
@@ -55,8 +59,12 @@ static ssize_t my_write(struct file *file, const char __user *user_buffer,
 		}
 		my_curr_fp += blknumsize;
 	}
-	
-	
+
+	/*init queue*/	
+	que->que_count = 0;
+	que->fir_index = 0;
+	que->curr_index = 0;
+
 	printk("my write function\n");
 	return 0;
 }
@@ -94,22 +102,13 @@ static void __exit exit_my_module(void) {
 	return;
 }
 
-int print_que_to_proc(struct myio_cir_que *que, struct proc_dir_entry *file) {
-	/*write queue data to proc file system
-	  if writing fail, return error code -1*/
 
-	/*init queue*/
-	que->que_count = 0;
-	que->fir_index = 0;
-	que->curr_index = 0;
-	
-	return 0;
-}
-
-int add_myioque(struct myio_cir_que *que, struct bio *bio, struct proc_dir_enrty *file) {
+int add_myioque(struct bio *bio) {
+	struct myio_cir_que *que = myioque;
+	struct proc_dir_entry *file = my_proc_file;
 	/*need routine for exception of print_que_to_proc failure*/
 	if (que->que_count == QUESIZE) {
-		if (print_que_to_proc(que, file) < 0)
+		if (file->proc_fops->write(NULL,NULL,0,NULL)) < 0)
 			return -1;
 	}
 	/*store data*/
