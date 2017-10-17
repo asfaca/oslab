@@ -18,7 +18,7 @@ struct myio_cir_que {
 	int que_count;
 	int fir_index;
 	int curr_index;
-}
+};
 
 static int my_open(struct inode *inode, struct file *file) {
 	printk(KERN_ALERT, "my open function\n");
@@ -36,15 +36,12 @@ static int my_write(struct file *file, const char __user *user_buffer,
 struct myio_cir_que myioque; 
 EXPORT_SYMBOL(myioque);
 struct proc_dir_entry *my_proc_dir;
-EXPORT_SYMBOL(my_proc_dir);
 struct proc_dir_entry *my_proc_file;
-EXPROT_SYMBOL(my_proc_file);
 struct file_operations myproc_fops = { .owner = THIS_MODULE,
 				       .open = my_open, 
 				       .write = my_write,
 };
 struct timespec my_bio_time;
-EXPORT_SYMBOL(my_bio_time);
 
 static int __init init_my_module(void) {
 	/*init circular queue*/
@@ -61,6 +58,8 @@ static int __init init_my_module(void) {
 }
 
 static void __exit exit_my_module(void) {
+	remove_proc_entry("oslab_file", my_proc_dir);
+	remove_proc_entry("oslab_dir", NULL);
 	printk(KERN_ALERT "module terminates\n");
 	return;
 }
@@ -92,6 +91,7 @@ int add_myioque(struct myio_cir_que *que, struct bio *bio, struct proc_dir_enrty
 	que->que[que->curr_index].time.tv_nsec = my_bio_time.tv_nsec;
 	/*store sector address*/
 	que->que[que->curr_index].sector_num = bio->bi_iter.bi_sector;
+	que->que_count++;	
 	
 	return 0;
 }
