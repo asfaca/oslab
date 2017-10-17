@@ -69,7 +69,16 @@ static ssize_t my_write(struct file *file, const char __user *user_buffer,
 	return 0;
 }
 
+static ssize_t my_read(struct file * f, char __user * userArray, size_t s, loff_t * l){
 
+	if(s >= sizeof(my_proc_buf)){
+        memcpy(userArray, my_proc_buf, sizeof(my_proc_buf)); 	
+       }
+
+	else {
+	printk("error : userArray size is smaller than my_proc_buf's size\n");
+	}
+}
 
 
 /*global variables*/
@@ -78,6 +87,7 @@ struct proc_dir_entry *my_proc_file;
 struct file_operations myproc_fops = { .owner = THIS_MODULE,
 				       .open = my_open, 
 				       .write = my_write,
+				       .read = my_read,
 };
 struct timespec my_bio_time;
 
