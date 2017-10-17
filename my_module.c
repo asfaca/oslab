@@ -5,7 +5,7 @@
 #include <linux/proc_fs.h>
 #include <linux/time.h>
 
-#define QUESIZE 100
+#define QUESIZE 100 
 
 /*declearation for this module*/
 struct myio_desc {
@@ -36,7 +36,9 @@ static int my_write(struct file *file, const char __user *user_buffer,
 struct myio_cir_que myioque; 
 EXPORT_SYMBOL(myioque);
 struct proc_dir_entry *my_proc_dir;
+EXPORT_SYMBOL(my_proc_dir);
 struct proc_dir_entry *my_proc_file;
+EXPROT_SYMBOL(my_proc_file);
 struct file_operations myproc_fops = { .owner = THIS_MODULE,
 				       .open = my_open, 
 				       .write = my_write,
@@ -63,13 +65,37 @@ static void __exit exit_my_module(void) {
 	return;
 }
 
-int add_myioque(struct myio_cir_que *que, struct timespec *time, ) {
-	if (que->que_count == QUESIZE)
-		print_que_to_proc(que); /*at here, initatilize que member like count, index ...*/
+int print_que_to_proc(struct myio_cir_que *que, struct proc_dir_entry *file) {
+	/*write queue data to proc file system
+	  if writing fail, return error code -1*/
 
-	/*store data*/
+	/*init queue*/
+	que->que_count = 0;
+	que->fir_index = 0;
+	que->curr_index = 0;
+	
+	return 0;
 }
 
+int add_myioque(struct myio_cir_que *que, struct bio *bio, struct proc_dir_enrty *file) {
+	/*need routine for exception of print_que_to_proc failure*/
+	if (que->que_count == QUESIZE) {
+		if (print_que_to_proc(que, file) < 0)
+			return -1; /*at here, initatilize que member like count, index ...*/
+	}
+	/*store data*/
+	if (++que->curr_index == QUESIZE)
+		que->curr_index = 0;
+	/*get current time and store data*/
+	getnssectimeofday(&my_bio_time);
+	que->que[que->curr_index].time.tv_sec = my_bio_time.tv_sec;
+	que->que[que->curr_index].time.tv_nsec = my_bio_time.tv_nsec;
+	/*store sector address*/
+	que->que[que->curr_index].sector_num = bio->bi_iter.bi_sector;
+	
+	return 0;
+}
+EXPORT_SYMBOL(add_myioque);
 
 module_init(init_my_module);
 module_exit(exit_my_module);
