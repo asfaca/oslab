@@ -81,7 +81,7 @@ int add_myioque(struct myio_cir_que *que, struct bio *bio, struct proc_dir_enrty
 	/*need routine for exception of print_que_to_proc failure*/
 	if (que->que_count == QUESIZE) {
 		if (print_que_to_proc(que, file) < 0)
-			return -1; /*at here, initatilize que member like count, index ...*/
+			return -1;
 	}
 	/*store data*/
 	if (++que->curr_index == QUESIZE)
