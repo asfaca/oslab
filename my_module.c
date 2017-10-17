@@ -47,7 +47,7 @@ static int __init init_my_module(void) {
 	/*init circular queue*/
 	myioque.que_count = 0;
 	myioque.fir_index = 0;
-	mtioque.curr_index = 0;
+	myioque.curr_index = 0;
 	
 	/*create proc*/
 	my_proc_dir = proc_mkdir("oslab_dir", NULL);
@@ -86,7 +86,7 @@ int add_myioque(struct myio_cir_que *que, struct bio *bio, struct proc_dir_enrty
 	if (++que->curr_index == QUESIZE)
 		que->curr_index = 0;
 	/*get current time and store data*/
-	getnssectimeofday(&my_bio_time);
+	getnstimeofday(&my_bio_time);
 	que->que[que->curr_index].time.tv_sec = my_bio_time.tv_sec;
 	que->que[que->curr_index].time.tv_nsec = my_bio_time.tv_nsec;
 	/*store sector address*/

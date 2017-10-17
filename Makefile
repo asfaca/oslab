@@ -1,4 +1,4 @@
-obj-m +=test_module.o
+obj-m +=my_module.o
 
 KDIR = /usr/src/linux-4.4
 
