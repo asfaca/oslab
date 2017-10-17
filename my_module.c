@@ -4,11 +4,14 @@
 #include <linux/types.h>
 #include <linux/proc_fs.h>
 #include <linux/time.h>
+#include <asm/uaccess.h>
 
 #define QUESIZE 100 
+#define PROCSIZE 100000
 
 /*declearation for this module*/
 struct myio_desc {
+	char *name;
 	struct timespec time;
 	sector_t sector_num;
 };
@@ -20,21 +23,48 @@ struct myio_cir_que {
 	int curr_index;
 };
 
+struct myio_cir_que myioque; 
+EXPORT_SYMBOL(myioque);
+
+static char my_proc_buf[PROCSIZE];
+int my_curr_fp = 0;
+
 static int my_open(struct inode *inode, struct file *file) {
-	printk(KERN_ALERT, "my open function\n");
+	my_curr_fp = 0;
+	printk("my open function\n");
 	return 0;
 }
 
-static int my_write(struct file *file, const char __user *user_buffer, 
-		    size_t count, loff_t *ppos) {
-	printk(KERN_ALERT, "my write function\n");
+static ssize_t my_write(struct file *file, const char __user *user_buffer, 
+		   size_t count, loff_t *ppos) {
+	int i;
+	int namesize = sizeof(myioque->que[0].name);
+	int timesize = sizeof(myioque->que[0].time.tv_sec);
+	int blknumsize = sizeof(myioque->que[0].sector_num);
+	for (i = 0; i < QUESIZE; i++) {
+		if (copy_from_user(&my_proc_buf[my_curr_fp], myioque->que[i].name, namesize)) {
+			return -EFAULT;
+		}
+		my_curr_fp += namesize;
+		if (copy_from_user(&my_proc_buf[my_curr_fp], myioque->que[i].time.tv_sec, timesize)) {
+			return -EFAULT;
+		}
+		my_curr_fp += timesize;
+		if (copy_from_user(&my_proc_buf[my_curr_fp], myioque->que[i].sector_num, blknumsize)) {
+			return -EFAULT;
+		}
+		my_curr_fp += blknumsize;
+	}
+	
+	
+	printk("my write function\n");
 	return 0;
 }
+
+
 
 
 /*global variables*/
-struct myio_cir_que myioque; 
-EXPORT_SYMBOL(myioque);
 struct proc_dir_entry *my_proc_dir;
 struct proc_dir_entry *my_proc_file;
 struct file_operations myproc_fops = { .owner = THIS_MODULE,
@@ -85,6 +115,8 @@ int add_myioque(struct myio_cir_que *que, struct bio *bio, struct proc_dir_enrty
 	/*store data*/
 	if (++que->curr_index == QUESIZE)
 		que->curr_index = 0;
+	/*store file system name*/
+	que->que[que->curr_index].name = bio->bi_bdev->bd_super->s_type->name;
 	/*get current time and store data*/
 	getnstimeofday(&my_bio_time);
 	que->que[que->curr_index].time.tv_sec = my_bio_time.tv_sec;
