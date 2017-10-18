@@ -42,6 +42,12 @@ static ssize_t my_write(struct file *file, const char __user *user_buffer,
 	int timesize = sizeof(myioque.que[0].time.tv_sec);
 	int blknumsize = sizeof(myioque.que[0].sector_num);
 
+	//test
+	if (myioque.que_count == 0) {
+		printk("que is empty. write do not work\n");
+		return count;
+	}
+
 	/*check proc buffer size*/
 	if (my_curr_fp + namesize + timesize + blknumsize >= PROCSIZE)
 		return -1;
@@ -122,9 +128,9 @@ static void __exit exit_my_module(void) {
 int add_myioque(struct bio *bio, struct myio_cir_que *que, struct proc_dir_entry *file) {
 	/*need routine for exception of print_que_to_proc failure*/
 	if (que->que_count == QUESIZE) {
-		if (file != NULL)
-			if(file->->write(NULL,NULL,0,NULL) < 0)
-				return -1;
+		//if (file != NULL)
+			//if(file->->write(NULL,NULL,0,NULL) < 0)
+				//return -1;
 	}
 	/*store data*/
 	if (++que->curr_index == QUESIZE)
