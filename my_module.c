@@ -23,8 +23,8 @@ struct myio_cir_que {
 	int curr_index;
 };
 
-struct myio_cir_que myioque; 
-EXPORT_SYMBOL(myioque);
+static struct myio_cir_que myioque; 
+//EXPORT_SYMBOL(myioque);
 
 static char my_proc_buf[PROCSIZE];
 int my_curr_fp = 0;
@@ -44,7 +44,7 @@ static ssize_t my_write(struct file *file, const char __user *user_buffer,
 
 	/*check proc buffer size*/
 	if (my_curr_fp + namesize + timesize + blknumsize >= PROCSIZE)
-		return 0;
+		return -1;
 
 	for (i = 0; i < QUESIZE; i++) {
 		if (copy_from_user(&my_proc_buf[my_curr_fp], (char *)myioque.que[i].name, namesize)) {
@@ -67,13 +67,14 @@ static ssize_t my_write(struct file *file, const char __user *user_buffer,
 	myioque.curr_index = 0;
 
 	printk("my write function\n");
-	return 0;
+	return count;
 }
 
 static ssize_t my_read(struct file * f, char __user * userArray, size_t s, loff_t * l){
 
 	if(s >= sizeof(my_proc_buf)){
         	memcpy(userArray, my_proc_buf, sizeof(my_proc_buf));
+		printk("my read\n");
 		return sizeof(my_proc_buf); 	
         }
 
@@ -85,13 +86,14 @@ static ssize_t my_read(struct file * f, char __user * userArray, size_t s, loff_
 
 
 /*global variables*/
-struct proc_dir_entry *my_proc_dir;
-struct proc_dir_entry *my_proc_file;
-EXPORT_SYMBOL(my_proc_file);
-struct file_operations myproc_fops = { .owner = THIS_MODULE,
-				       .open = my_open, 
-				       .write = my_write,
-				       .read = my_read,
+static struct proc_dir_entry *my_proc_dir = NULL;
+static struct proc_dir_entry *my_proc_file = NULL;
+//EXPORT_SYMBOL(my_proc_file);
+static const struct file_operations myproc_fops = { 
+		.owner = THIS_MODULE,
+		.open = my_open, 
+		.write = my_write,
+		.read = my_read,
 };
 struct timespec my_bio_time;
 
@@ -120,8 +122,9 @@ static void __exit exit_my_module(void) {
 int add_myioque(struct bio *bio, struct myio_cir_que *que, struct proc_dir_entry *file) {
 	/*need routine for exception of print_que_to_proc failure*/
 	if (que->que_count == QUESIZE) {
-		//if (file->proc_fops->write(NULL,NULL,0,NULL) < 0)
-			//return -1;
+		if (file != NULL)
+			if(file->->write(NULL,NULL,0,NULL) < 0)
+				return -1;
 	}
 	/*store data*/
 	if (++que->curr_index == QUESIZE)
