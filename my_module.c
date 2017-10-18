@@ -5,6 +5,7 @@
 #include <linux/proc_fs.h>
 #include <linux/time.h>
 #include <asm/uaccess.h>
+#include <linux/string.h>
 
 #define QUESIZE 100 
 #define PROCSIZE 100000
@@ -38,7 +39,7 @@ static int my_open(struct inode *inode, struct file *file) {
 static ssize_t my_write(struct file *file, const char __user *user_buffer, 
 		   size_t count, loff_t *ppos) {
 	int i;
-	int namesize = sizeof(myioque.que[0].name);
+	int namesize = strlen(myioque.que[0].name);
 	int timesize = sizeof(myioque.que[0].time.tv_sec);
 	int blknumsize = sizeof(myioque.que[0].sector_num);
 
@@ -53,24 +54,22 @@ static ssize_t my_write(struct file *file, const char __user *user_buffer,
 		return -1;
 
 	for (i = 0; i < QUESIZE; i++) {
-		if (copy_from_user(&my_proc_buf[my_curr_fp], (char *)myioque.que[i].name, namesize)) {
+		if (memcpy(&my_proc_buf[my_curr_fp], (char *)myioque.que[i].name, namesize)) {
 			return -EFAULT;
 		}
 		my_curr_fp += namesize;
-		if (copy_from_user(&my_proc_buf[my_curr_fp], (long *)myioque.que[i].time.tv_sec, timesize)) {
+		if (memcpy(&my_proc_buf[my_curr_fp], (long *)myioque.que[i].time.tv_sec, timesize)) {
 			return -EFAULT;
 		}
 		my_curr_fp += timesize;
-		if (copy_from_user(&my_proc_buf[my_curr_fp], (sector_t *)myioque.que[i].sector_num, blknumsize)) {
+		if (memcpy(&my_proc_buf[my_curr_fp], (sector_t *)myioque.que[i].sector_num, blknumsize)) {
 			return -EFAULT;
 		}
 		my_curr_fp += blknumsize;
 	}
 
 	/*init queue*/	
-	myioque.que_count = 0;
-	myioque.fir_index = 0;
-	myioque.curr_index = 0;
+	memset(&myioque, 0, sizeof(struct myio_cir_que));	
 
 	printk("my write function\n");
 	return count;
@@ -78,10 +77,10 @@ static ssize_t my_write(struct file *file, const char __user *user_buffer,
 
 static ssize_t my_read(struct file * f, char __user * userArray, size_t s, loff_t * l){
 
-	if(s >= sizeof(my_proc_buf)){
-        	memcpy(userArray, my_proc_buf, sizeof(my_proc_buf));
+	if(s <= sizeof(my_proc_buf)){
+        	memcpy(userArray, my_proc_buf, s);
 		printk("my read\n");
-		return sizeof(my_proc_buf); 	
+		return s; 	
         }
 
 	else {
@@ -92,8 +91,8 @@ static ssize_t my_read(struct file * f, char __user * userArray, size_t s, loff_
 
 
 /*global variables*/
-static struct proc_dir_entry *my_proc_dir = NULL;
-static struct proc_dir_entry *my_proc_file = NULL;
+static struct proc_dir_entry *my_proc_dir;
+static struct proc_dir_entry *my_proc_file;
 //EXPORT_SYMBOL(my_proc_file);
 static const struct file_operations myproc_fops = { 
 		.owner = THIS_MODULE,
@@ -105,10 +104,8 @@ struct timespec my_bio_time;
 
 static int __init init_my_module(void) {
 	/*init circular queue*/
-	myioque.que_count = 0;
-	myioque.fir_index = 0;
-	myioque.curr_index = 0;
-	
+	memset(&myioque, 0, sizeof(struct myio_cir_que));	
+
 	/*create proc*/
 	my_proc_dir = proc_mkdir("oslab_dir", NULL);
 	my_proc_file = proc_create("oslab_file", 0600, my_proc_dir, &myproc_fops);
@@ -128,9 +125,8 @@ static void __exit exit_my_module(void) {
 int add_myioque(struct bio *bio, struct myio_cir_que *que, struct proc_dir_entry *file) {
 	/*need routine for exception of print_que_to_proc failure*/
 	if (que->que_count == QUESIZE) {
-		//if (file != NULL)
-			//if(file->->write(NULL,NULL,0,NULL) < 0)
-				//return -1;
+		if(my_write(NULL,NULL,0,NULL) < 0)
+			return -1;
 	}
 	/*store data*/
 	if (++que->curr_index == QUESIZE)
