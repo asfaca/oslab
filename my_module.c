@@ -11,7 +11,7 @@
 
 /*declearation for this module*/
 struct myio_desc {
-	char *name;
+	const char *name;
 	struct timespec time;
 	sector_t sector_num;
 };
@@ -24,6 +24,7 @@ struct myio_cir_que {
 };
 
 struct myio_cir_que myioque; 
+EXPORT_SYMBOL(myioque);
 
 static char my_proc_buf[PROCSIZE];
 int my_curr_fp = 0;
@@ -72,11 +73,13 @@ static ssize_t my_write(struct file *file, const char __user *user_buffer,
 static ssize_t my_read(struct file * f, char __user * userArray, size_t s, loff_t * l){
 
 	if(s >= sizeof(my_proc_buf)){
-        memcpy(userArray, my_proc_buf, sizeof(my_proc_buf)); 	
-       }
+        	memcpy(userArray, my_proc_buf, sizeof(my_proc_buf));
+		return sizeof(my_proc_buf); 	
+        }
 
 	else {
-	printk("error : userArray size is smaller than my_proc_buf's size\n");
+		printk("error : userArray size is smaller than my_proc_buf's size\n");
+		return -1;
 	}
 }
 
@@ -84,6 +87,7 @@ static ssize_t my_read(struct file * f, char __user * userArray, size_t s, loff_
 /*global variables*/
 struct proc_dir_entry *my_proc_dir;
 struct proc_dir_entry *my_proc_file;
+EXPORT_SYMBOL(my_proc_file);
 struct file_operations myproc_fops = { .owner = THIS_MODULE,
 				       .open = my_open, 
 				       .write = my_write,
@@ -113,12 +117,11 @@ static void __exit exit_my_module(void) {
 }
 
 
-int add_myioque(struct bio *bio) {
-	struct myio_cir_que *que = &myioque;
+int add_myioque(struct bio *bio, struct myio_cir_que *que, struct proc_dir_entry *file) {
 	/*need routine for exception of print_que_to_proc failure*/
 	if (que->que_count == QUESIZE) {
-		if (my_proc_file->proc_fops->write(NULL,NULL,0,NULL) < 0)
-			return -1;
+		//if (file->proc_fops->write(NULL,NULL,0,NULL) < 0)
+			//return -1;
 	}
 	/*store data*/
 	if (++que->curr_index == QUESIZE)
