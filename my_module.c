@@ -9,6 +9,8 @@
 
 #define QUESIZE 100 
 #define PROCSIZE 100000
+#define ASCIENTER 0x0A
+#define ASCISPACE 0x20
 
 /*declearation for this module*/
 struct myio_desc {
@@ -27,45 +29,43 @@ struct myio_cir_que {
 static struct myio_cir_que myioque; 
 //EXPORT_SYMBOL(myioque);
 
-static char my_proc_buf[PROCSIZE];
-int my_curr_fp = 0;
+static char my_proc_buf[PROCSIZE] = "";
+int my_proc_fp = 0;
 
-static int my_open(struct inode *inode, struct file *file) {
-	my_curr_fp = 0;
+int my_open(struct inode *inode, struct file *file) {
+	my_proc_fp = 0;
 	printk("my open function\n");
 	return 0;
 }
 
-static ssize_t my_write(struct file *file, const char __user *user_buffer, 
+ssize_t my_write(struct file *file, const char __user *user_buffer, 
 		   size_t count, loff_t *ppos) {
-	int i;
-	int namesize = strlen(myioque.que[0].name);
-	int timesize = sizeof(myioque.que[0].time.tv_sec);
-	int blknumsize = sizeof(myioque.que[0].sector_num);
-
+	int i = myioque.curr_index;
 	//test
 	if (myioque.que_count == 0) {
-		printk("que is empty. write do not work\n");
+		printk("error : que is empty. Nothing to write.\n");
 		return count;
 	}
 
 	/*check proc buffer size*/
-	if (my_curr_fp + namesize + timesize + blknumsize >= PROCSIZE)
-		return -1;
+	if (my_proc_fp > PROCSIZE-100) 
+		return count;
+	
+	/*print data to proc*/
+	while(1) {
+		if (i == QUESIZE)
+			i = 0;
 
-	for (i = 0; i < QUESIZE; i++) {
-		if (memcpy(&my_proc_buf[my_curr_fp], (char *)myioque.que[i].name, namesize)) {
-			return -EFAULT;
-		}
-		my_curr_fp += namesize;
-		if (memcpy(&my_proc_buf[my_curr_fp], (long *)myioque.que[i].time.tv_sec, timesize)) {
-			return -EFAULT;
-		}
-		my_curr_fp += timesize;
-		if (memcpy(&my_proc_buf[my_curr_fp], (sector_t *)myioque.que[i].sector_num, blknumsize)) {
-			return -EFAULT;
-		}
-		my_curr_fp += blknumsize;
+		my_proc_fp += sprintf(&my_proc_buf[my_proc_fp], "%s", myioque.que[i].name);
+		my_proc_buf[my_proc_fp++] = ASCISPACE;
+		my_proc_fp += sprintf(&my_proc_buf[my_proc_fp], "%ld", myioque.que[i].sector_num);
+		my_proc_buf[my_proc_fp++] = ASCISPACE;
+		my_proc_fp += sprintf(&my_proc_buf[my_proc_fp], "%ld", myioque.que[i].time.tv_sec);
+		my_proc_buf[my_proc_fp++] = ASCIENTER;
+
+		if (--myioque.que_count == 0)
+			break;
+		i++;
 	}
 
 	/*init queue*/	
@@ -75,9 +75,9 @@ static ssize_t my_write(struct file *file, const char __user *user_buffer,
 	return count;
 }
 
-static ssize_t my_read(struct file * f, char __user * userArray, size_t s, loff_t * l){
+static ssize_t my_read(struct file *f, char __user *userArray, size_t s, loff_t * l){
 
-	if(s <= sizeof(my_proc_buf)){
+	if(s <= PROCSIZE){
         	memcpy(userArray, my_proc_buf, s);
 		printk("my read\n");
 		return s; 	
@@ -105,6 +105,7 @@ struct timespec my_bio_time;
 static int __init init_my_module(void) {
 	/*init circular queue*/
 	memset(&myioque, 0, sizeof(struct myio_cir_que));	
+	memset(my_proc_buf, 0, sizeof(my_proc_buf));
 
 	/*create proc*/
 	my_proc_dir = proc_mkdir("oslab_dir", NULL);
@@ -122,7 +123,8 @@ static void __exit exit_my_module(void) {
 }
 
 
-int add_myioque(struct bio *bio, struct myio_cir_que *que, struct proc_dir_entry *file) {
+int add_myioque(struct bio *bio) {
+	struct myio_cir_que *que = &myioque;
 	/*need routine for exception of print_que_to_proc failure*/
 	if (que->que_count == QUESIZE) {
 		if(my_write(NULL,NULL,0,NULL) < 0)
@@ -148,7 +150,7 @@ EXPORT_SYMBOL(add_myioque);
 module_init(init_my_module);
 module_exit(exit_my_module);
 
-MODULE_AUTHOR("SUWAN KIM");
+MODULE_AUTHOR("KIM");
 MODULE_DESCRIPTION("FIRST MADE KERNEL MODULE");
 MODULE_LICENSE("GPL");
 MODULE_VERSION("NEW");
