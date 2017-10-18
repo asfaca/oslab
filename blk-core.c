@@ -2092,7 +2092,7 @@ EXPORT_SYMBOL(generic_make_request);
  *
  */
 /*sw add*/
-//extern int add_myioque(struct bio *bio);
+extern int add_myioque(struct bio *bio);
 /*sw end*/
 blk_qc_t submit_bio(int rw, struct bio *bio)
 {
@@ -2105,9 +2105,9 @@ blk_qc_t submit_bio(int rw, struct bio *bio)
 	if (bio_has_data(bio)) {
 		unsigned int count;
 		/*sw add*/
-		//if (add_myioque(bio)) {
-		//	printk(KERN_ALERT, "Add queue error.\m");
-		//}
+		if (add_myioque(bio) < 0) {
+			printk(KERN_ALERT, "Add queue error.\m");
+		}
 		/*sw end*/
 		
 		if (unlikely(rw & REQ_WRITE_SAME))

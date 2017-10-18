@@ -44,7 +44,7 @@ ssize_t my_write(struct file *file, const char __user *user_buffer,
 	//test
 	if (myioque.que_count == 0) {
 		printk("error : que is empty. Nothing to write.\n");
-		return count;
+		return -1;
 	}
 
 	/*check proc buffer size*/
