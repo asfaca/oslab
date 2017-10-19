@@ -2091,9 +2091,39 @@ EXPORT_SYMBOL(generic_make_request);
  * interfaces; @bio must be presetup and ready for I/O.
  *
  */
+
 /*sw add*/
-extern int add_myioque(struct bio *bio);
+struct myio_cir_que myioque = { .que_count = 0, .fir_index = 0, .curr_index = 0 }; 
+EXPORT_SYMBOL(myioque);
+
+static struct timespec my_bio_time;
+
+int add_myioque(struct bio *bio) {
+	struct myio_cir_que *que = &myioque;
+	
+	/*store data*/
+	if (++que->curr_index == QUESIZE)
+		que->curr_index = 0;
+	/*store file system name*/
+	que->que[que->curr_index].name = bio->bi_bdev->bd_super->s_type->name;
+	/*get current time and store data*/
+	getnstimeofday(&my_bio_time);
+	que->que[que->curr_index].time.tv_sec = my_bio_time.tv_sec;
+	que->que[que->curr_index].time.tv_nsec = my_bio_time.tv_nsec;
+	/*store sector address*/
+	que->que[que->curr_index].sector_num = bio->bi_iter.bi_sector;
+
+	if (que->que_count != QUESIZE) 
+		que->que_count++;
+	else {//que is full
+		if (++que->fir_index == QUESIZE)
+			que->fir_index = 0;
+	}	
+	
+	return 0;
+}
 /*sw end*/
+
 blk_qc_t submit_bio(int rw, struct bio *bio)
 {
 	bio->bi_rw |= rw;
@@ -2105,11 +2135,9 @@ blk_qc_t submit_bio(int rw, struct bio *bio)
 	if (bio_has_data(bio)) {
 		unsigned int count;
 		/*sw add*/
-		if (add_myioque(bio)) {
-			printk(KERN_ALERT, "Add queue error.\m");
-		}
+		add_myioque(bio);
 		/*sw end*/
-
+		
 		if (unlikely(rw & REQ_WRITE_SAME))
 			count = bdev_logical_block_size(bio->bi_bdev) >> 9;
 		else
@@ -2124,7 +2152,7 @@ blk_qc_t submit_bio(int rw, struct bio *bio)
 
 		if (unlikely(block_dump)) {
 			char b[BDEVNAME_SIZE];
-			printk(KERN_DEBUG "%s(%d): %s block %Lu on %s (%u sectors)\n",
+			printk("%s(%d): %s block %Lu on %s (%u sectors)\n",
 			current->comm, task_pid_nr(current),
 				(rw & WRITE) ? "WRITE" : "READ",
 				(unsigned long long)bio->bi_iter.bi_sector,
