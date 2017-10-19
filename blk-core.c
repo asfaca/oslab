@@ -2110,17 +2110,14 @@ struct myio_cir_que {
 };
 EXPORT_SYMBOL(myio_cir_que);
 
-struct myio_cir_que myioque; 
+struct myio_cir_que myioque = { .que_count = 0, .fir_index = 0, .curr_index = 0 }; 
 EXPORT_SYMBOL(myioque);
 
 static struct timespec my_bio_time;
 
 int add_myioque(struct bio *bio) {
 	struct myio_cir_que *que = &myioque;
-	/*rotate*/
-	if (que->que_count == QUESIZE) {
-		;
-	}
+	
 	/*store data*/
 	if (++que->curr_index == QUESIZE)
 		que->curr_index = 0;
@@ -2132,12 +2129,18 @@ int add_myioque(struct bio *bio) {
 	que->que[que->curr_index].time.tv_nsec = my_bio_time.tv_nsec;
 	/*store sector address*/
 	que->que[que->curr_index].sector_num = bio->bi_iter.bi_sector;
-	que->que_count++;	
+
+	if (que->que_count != QUESIZE) 
+		que->que_count++;
+	else {//que is full
+		if (++que->fir_index == QUESIZE)
+			que->fir_index = 0;
+	}	
 	
 	return 0;
 }
-
 /*sw end*/
+
 blk_qc_t submit_bio(int rw, struct bio *bio)
 {
 	bio->bi_rw |= rw;
@@ -2149,9 +2152,7 @@ blk_qc_t submit_bio(int rw, struct bio *bio)
 	if (bio_has_data(bio)) {
 		unsigned int count;
 		/*sw add*/
-		if (add_myioque(bio) < 0) {
-			printk("queue .\n");
-		}
+		add_myioque(bio);
 		/*sw end*/
 		
 		if (unlikely(rw & REQ_WRITE_SAME))
