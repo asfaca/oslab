@@ -13,6 +13,7 @@
 #define ASCISPACE 0x20
 
 extern struct myio_cir_que myioque;
+extern int my_notbooting;
 
 static char my_proc_buf[PROCSIZE] = "";
 int my_proc_fp = 0;
@@ -29,28 +30,26 @@ ssize_t my_write(struct file *file, const char __user *user_buffer,
 	if (count > 0)
 		return count;	
 	
-	while(1) {
-		msleep(500);
-		
-		if (my_proc_fp > PROCSIZE-100) 
-			break;
+	if (my_proc_fp > PROCSIZE-100) 
+		return count;
+	printk("que size : %d, name : %s, block_num : %lu\n", myioque.que_count, myioque.que[myioque.curr_index].name, myioque.que[myioque.curr_index].sector_num);
 
-		if (myioque.que_count == QUESIZE) {
-			i = myioque.curr_index;
 
-			while(--myioque.que_count != 0){
-				if (i == QUESIZE)
-					i = 0;	
-				my_proc_fp += sprintf(&my_proc_buf[my_proc_fp], "%s", myioque.que[i].name);
-				my_proc_buf[my_proc_fp++] = ASCISPACE;
-				my_proc_fp += sprintf(&my_proc_buf[my_proc_fp], "%lu", myioque.que[i].sector_num);
-				my_proc_buf[my_proc_fp++] = ASCISPACE;
-				my_proc_fp += sprintf(&my_proc_buf[my_proc_fp], "%ld", myioque.que[i].time.tv_sec);
-				my_proc_buf[my_proc_fp++] = ASCIENTER;
-				i++;
-			}
-			memset(&myioque, 0, sizeof(struct myio_cir_que));
+	if (myioque.que_count == QUESIZE) {
+		i = myioque.curr_index;
+
+		while(--myioque.que_count != 0){
+			if (i == QUESIZE)
+				i = 0;	
+			my_proc_fp += sprintf(&my_proc_buf[my_proc_fp], "%s", myioque.que[i].name);
+			my_proc_buf[my_proc_fp++] = ASCISPACE;
+			my_proc_fp += sprintf(&my_proc_buf[my_proc_fp], "%lu", myioque.que[i].sector_num);
+			my_proc_buf[my_proc_fp++] = ASCISPACE;
+			my_proc_fp += sprintf(&my_proc_buf[my_proc_fp], "%ld", myioque.que[i].time.tv_sec);
+			my_proc_buf[my_proc_fp++] = ASCIENTER;
+			i++;
 		}
+		memset(&myioque, 0, sizeof(struct myio_cir_que));
 	}
 
 	printk("my write function end\n");
@@ -86,7 +85,7 @@ static const struct file_operations myproc_fops = {
 static int __init init_my_module(void) {
 	/*init circular queue*/
 	memset(my_proc_buf, 0, sizeof(my_proc_buf));
-
+	my_notbooting = 1;
 	/*create proc*/
 	my_proc_dir = proc_mkdir("oslab_dir", NULL);
 	my_proc_file = proc_create("oslab_file", 0600, my_proc_dir, &myproc_fops);
