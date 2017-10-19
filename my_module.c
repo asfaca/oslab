@@ -7,9 +7,8 @@
 #include <asm/uaccess.h>
 #include <linux/string.h>
 #include <linux/timer.h>
+#include <linux/bio.h>
 
-
-#define QUESIZE 100000 
 #define PROCSIZE 100000
 #define ASCIENTER 0x0A
 #define ASCISPACE 0x20
