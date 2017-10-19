@@ -5,7 +5,7 @@
 #include <linux/proc_fs.h>
 #include <linux/time.h>
 #include <linux/string.h>
-#include <linux/timer.h>
+#include <linux/delay.h>
 #include <linux/bio.h>
 
 #define PROCSIZE 100000
@@ -28,7 +28,7 @@ ssize_t my_write(struct file *file, const char __user *user_buffer,
 
 	if (count > 0)
 		return count;	
-	int i;
+	int i = 0;
 	
 	while(1) {
 		msleep(500);
@@ -44,7 +44,7 @@ ssize_t my_write(struct file *file, const char __user *user_buffer,
 					i = 0;	
 				my_proc_fp += sprintf(&my_proc_buf[my_proc_fp], "%s", myioque.que[i].name);
 				my_proc_buf[my_proc_fp++] = ASCISPACE;
-				my_proc_fp += sprintf(&my_proc_buf[my_proc_fp], "%ld", myioque.que[i].sector_num);
+				my_proc_fp += sprintf(&my_proc_buf[my_proc_fp], "%lu", myioque.que[i].sector_num);
 				my_proc_buf[my_proc_fp++] = ASCISPACE;
 				my_proc_fp += sprintf(&my_proc_buf[my_proc_fp], "%ld", myioque.que[i].time.tv_sec);
 				my_proc_buf[my_proc_fp++] = ASCIENTER;
