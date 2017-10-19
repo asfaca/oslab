@@ -7,27 +7,10 @@
 #include <asm/uaccess.h>
 #include <linux/string.h>
 
-#define QUESIZE 100 
+#define QUESIZE 100000 
 #define PROCSIZE 100000
 #define ASCIENTER 0x0A
 #define ASCISPACE 0x20
-
-/*declearation for this module*/
-struct myio_desc {
-	const char *name;
-	struct timespec time;
-	sector_t sector_num;
-};
-
-struct myio_cir_que {
-	struct myio_desc que[QUESIZE];
-	int que_count;
-	int fir_index;
-	int curr_index;
-};
-
-static struct myio_cir_que myioque; 
-//EXPORT_SYMBOL(myioque);
 
 static char my_proc_buf[PROCSIZE] = "";
 int my_proc_fp = 0;
@@ -100,7 +83,6 @@ static const struct file_operations myproc_fops = {
 		.write = my_write,
 		.read = my_read,
 };
-struct timespec my_bio_time;
 
 static int __init init_my_module(void) {
 	/*init circular queue*/
@@ -121,31 +103,6 @@ static void __exit exit_my_module(void) {
 	printk(KERN_ALERT "module terminates\n");
 	return;
 }
-
-
-int add_myioque(struct bio *bio) {
-	struct myio_cir_que *que = &myioque;
-	/*need routine for exception of print_que_to_proc failure*/
-	if (que->que_count == QUESIZE) {
-		if(my_write(NULL,NULL,0,NULL) < 0)
-			return -1;
-	}
-	/*store data*/
-	if (++que->curr_index == QUESIZE)
-		que->curr_index = 0;
-	/*store file system name*/
-	que->que[que->curr_index].name = bio->bi_bdev->bd_super->s_type->name;
-	/*get current time and store data*/
-	getnstimeofday(&my_bio_time);
-	que->que[que->curr_index].time.tv_sec = my_bio_time.tv_sec;
-	que->que[que->curr_index].time.tv_nsec = my_bio_time.tv_nsec;
-	/*store sector address*/
-	que->que[que->curr_index].sector_num = bio->bi_iter.bi_sector;
-	que->que_count++;	
-	
-	return 0;
-}
-EXPORT_SYMBOL(add_myioque);
 
 module_init(init_my_module);
 module_exit(exit_my_module);

@@ -2092,7 +2092,51 @@ EXPORT_SYMBOL(generic_make_request);
  *
  */
 /*sw add*/
-extern int add_myioque(struct bio *bio);
+#define QUESIZE 100000 
+
+/*declearation for this module*/
+struct myio_desc {
+	const char *name;
+	struct timespec time;
+	sector_t sector_num;
+};
+EXPORT_SYMBOL(myio_desc);
+
+struct myio_cir_que {
+	struct myio_desc que[QUESIZE];
+	int que_count;
+	int fir_index;
+	int curr_index;
+};
+EXPORT_SYMBOL(myio_cir_que);
+
+struct myio_cir_que myioque; 
+EXPORT_SYMBOL(myioque);
+
+static struct timespec my_bio_time;
+
+int add_myioque(struct bio *bio) {
+	struct myio_cir_que *que = &myioque;
+	/*rotate*/
+	if (que->que_count == QUESIZE) {
+		;
+	}
+	/*store data*/
+	if (++que->curr_index == QUESIZE)
+		que->curr_index = 0;
+	/*store file system name*/
+	que->que[que->curr_index].name = bio->bi_bdev->bd_super->s_type->name;
+	/*get current time and store data*/
+	getnstimeofday(&my_bio_time);
+	que->que[que->curr_index].time.tv_sec = my_bio_time.tv_sec;
+	que->que[que->curr_index].time.tv_nsec = my_bio_time.tv_nsec;
+	/*store sector address*/
+	que->que[que->curr_index].sector_num = bio->bi_iter.bi_sector;
+	que->que_count++;	
+	
+	return 0;
+}
+
 /*sw end*/
 blk_qc_t submit_bio(int rw, struct bio *bio)
 {
@@ -2106,7 +2150,7 @@ blk_qc_t submit_bio(int rw, struct bio *bio)
 		unsigned int count;
 		/*sw add*/
 		if (add_myioque(bio) < 0) {
-			printk(KERN_ALERT, "Add queue error.\m");
+			printk("queue .\n");
 		}
 		/*sw end*/
 		
