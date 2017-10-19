@@ -4,7 +4,6 @@
 #include <linux/types.h>
 #include <linux/proc_fs.h>
 #include <linux/time.h>
-#include <asm/uaccess.h>
 #include <linux/string.h>
 #include <linux/timer.h>
 #include <linux/bio.h>
@@ -13,13 +12,7 @@
 #define ASCIENTER 0x0A
 #define ASCISPACE 0x20
 
-
-
-extern struct myio_desc;
-extern struct myio_cir_que;
 extern struct myio_cir_que myioque;
-
-
 
 static char my_proc_buf[PROCSIZE] = "";
 int my_proc_fp = 0;
@@ -32,44 +25,36 @@ int my_open(struct inode *inode, struct file *file) {
 
 ssize_t my_write(struct file *file, const char __user *user_buffer, 
 		   size_t count, loff_t *ppos) {
+
+	if (count > 0)
+		return count;	
+	int i;
 	
 	while(1) {
-	
 		msleep(500);
-
-		int i = myioque.curr_index;
-
-		if (myioque.que_count == 0) {
-			printk("error : que is empty. Nothing to write.\n");
-			continue;
-		}
-
+		
 		if (my_proc_fp > PROCSIZE-100) 
-			continue;
-	
+			break;
 
-
-		if (i == QUESIZE) {
-			
-			i=0;
+		if (myioque.que_count == QUESIZE) {
+			i = myioque.curr_index;
 
 			while(--myioque.que_count != 0){
-			
-
-			my_proc_fp += sprintf(&my_proc_buf[my_proc_fp], "%s", myioque.que[i].name);
-			my_proc_buf[my_proc_fp++] = ASCISPACE;
-			my_proc_fp += sprintf(&my_proc_buf[my_proc_fp], "%ld", myioque.que[i].sector_num);
-			my_proc_buf[my_proc_fp++] = ASCISPACE;
-			my_proc_fp += sprintf(&my_proc_buf[my_proc_fp], "%ld", myioque.que[i].time.tv_sec);
-			my_proc_buf[my_proc_fp++] = ASCIENTER;
-
-			i++;
+				if (i == QUESIZE)
+					i = 0;	
+				my_proc_fp += sprintf(&my_proc_buf[my_proc_fp], "%s", myioque.que[i].name);
+				my_proc_buf[my_proc_fp++] = ASCISPACE;
+				my_proc_fp += sprintf(&my_proc_buf[my_proc_fp], "%ld", myioque.que[i].sector_num);
+				my_proc_buf[my_proc_fp++] = ASCISPACE;
+				my_proc_fp += sprintf(&my_proc_buf[my_proc_fp], "%ld", myioque.que[i].time.tv_sec);
+				my_proc_buf[my_proc_fp++] = ASCIENTER;
+				i++;
+			}
+			memset(&myioque, 0, sizeof(struct myio_cir_que));
 		}
+	}
 
-	/*init queue*/	
-	memset(&myioque, 0, sizeof(struct myio_cir_que));	
-
-	printk("my write function\n");
+	printk("my write function end\n");
 	return count;
 }
 
@@ -108,7 +93,6 @@ static int __init init_my_module(void) {
 	my_proc_dir = proc_mkdir("oslab_dir", NULL);
 	my_proc_file = proc_create("oslab_file", 0600, my_proc_dir, &myproc_fops);
 	
-	my_open(NULL, NULL);
 	my_write(NULL, NULL, 0, NULL);
 
 	printk(KERN_ALERT "module starts.\n");

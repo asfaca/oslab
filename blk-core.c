@@ -2091,25 +2091,8 @@ EXPORT_SYMBOL(generic_make_request);
  * interfaces; @bio must be presetup and ready for I/O.
  *
  */
+
 /*sw add*/
-#define QUESIZE 100000 
-
-/*declearation for this module*/
-struct myio_desc {
-	const char *name;
-	struct timespec time;
-	sector_t sector_num;
-};
-EXPORT_SYMBOL(myio_desc);
-
-struct myio_cir_que {
-	struct myio_desc que[QUESIZE];
-	int que_count;
-	int fir_index;
-	int curr_index;
-};
-EXPORT_SYMBOL(myio_cir_que);
-
 struct myio_cir_que myioque = { .que_count = 0, .fir_index = 0, .curr_index = 0 }; 
 EXPORT_SYMBOL(myioque);
 
