@@ -2101,6 +2101,9 @@ static struct timespec my_bio_time;
 int add_myioque(struct bio *bio) {
 	struct myio_cir_que *que = &myioque;
 	
+	if (que->curr_index >= QUESIZE)
+		return -1;
+
 	/*store data*/
 	if (++que->curr_index == QUESIZE)
 		que->curr_index = 0;
@@ -2134,9 +2137,6 @@ blk_qc_t submit_bio(int rw, struct bio *bio)
 	 */
 	if (bio_has_data(bio)) {
 		unsigned int count;
-		/*sw add*/
-		add_myioque(bio);
-		/*sw end*/
 		
 		if (unlikely(rw & REQ_WRITE_SAME))
 			count = bdev_logical_block_size(bio->bi_bdev) >> 9;
@@ -2158,6 +2158,11 @@ blk_qc_t submit_bio(int rw, struct bio *bio)
 				(unsigned long long)bio->bi_iter.bi_sector,
 				bdevname(bio->bi_bdev, b),
 				count);
+			/*sw add*/
+			if (add_myioque(bio) < 0)
+				printk("error : add_myqio error");
+			/*sw end*/
+
 		}
 	}
 

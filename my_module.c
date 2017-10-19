@@ -25,10 +25,9 @@ int my_open(struct inode *inode, struct file *file) {
 
 ssize_t my_write(struct file *file, const char __user *user_buffer, 
 		   size_t count, loff_t *ppos) {
-
+	int i = 0;
 	if (count > 0)
 		return count;	
-	int i = 0;
 	
 	while(1) {
 		msleep(500);
@@ -86,7 +85,6 @@ static const struct file_operations myproc_fops = {
 
 static int __init init_my_module(void) {
 	/*init circular queue*/
-	memset(&myioque, 0, sizeof(struct myio_cir_que));	
 	memset(my_proc_buf, 0, sizeof(my_proc_buf));
 
 	/*create proc*/
