@@ -32,8 +32,6 @@ ssize_t my_write(struct file *file, const char __user *user_buffer,
 	
 	if (my_proc_fp > PROCSIZE-100) 
 		return count;
-	printk("que size : %d, name : %s, block_num : %lu\n", myioque.que_count, myioque.que[myioque.curr_index].name, myioque.que[myioque.curr_index].sector_num);
-
 
 	if (myioque.que_count == QUESIZE) {
 		i = myioque.curr_index;
@@ -83,14 +81,19 @@ static const struct file_operations myproc_fops = {
 };
 
 static int __init init_my_module(void) {
-	/*init circular queue*/
+	int i = 100000;
+	/*init proc buffer*/
 	memset(my_proc_buf, 0, sizeof(my_proc_buf));
 	my_notbooting = 1;
 	/*create proc*/
 	my_proc_dir = proc_mkdir("oslab_dir", NULL);
 	my_proc_file = proc_create("oslab_file", 0600, my_proc_dir, &myproc_fops);
 	
-	my_write(NULL, NULL, 0, NULL);
+	while(i) {
+		my_write(NULL, NULL, 0, NULL);
+		udelay(100);
+		i--;
+	}
 
 	printk(KERN_ALERT "module starts.\n");
 	return 0;

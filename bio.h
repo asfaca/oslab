@@ -102,7 +102,7 @@
 
 /*sw add*/
 #include <linux/time.h>
-#define QUESIZE 100000 
+#define QUESIZE 100
 
 /*declearation for this module*/
 struct myio_desc {

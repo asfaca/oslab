@@ -15,8 +15,12 @@ int main(void) {
 		return 0;
 	}
 
-	printf("%s\n", buf);
+	int fd_write = open("print-proc.txt", O_WRONLY);
+	if (write(fd_write, buf, SIZE) < 0) {
+		printf("write fail\n");
+		return 0;
+	}
+
+
 	return 0;
 }
-
-	

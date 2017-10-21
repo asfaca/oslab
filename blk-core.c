@@ -2105,7 +2105,6 @@ int add_myioque(struct bio *bio) {
 	
 	if (cque->curr_index >= QUESIZE)
 		return -1;
-	printk("block num : long %lu longlong %ld name : %s\n", bio->bi_iter.bi_sector,bio->bi_iter.bi_sector, bio->bi_bdev->bd_super->s_type->name);
 	/*store data*/
 	if (++cque->curr_index == QUESIZE)
 		cque->curr_index = 0;
@@ -2124,7 +2123,6 @@ int add_myioque(struct bio *bio) {
 		if (++cque->fir_index == QUESIZE)
 			cque->fir_index = 0;
 	}	
-	printk("que block num : long %lu name : %s, long time : %lu longlong %ld\n", cque->que[cque->curr_index].sector_num, cque->que[cque->curr_index].name, cque->que[cque->curr_index].time.tv_sec, cque->que[cque->curr_index].time.tv_sec);
 	return 0;
 }
 /*sw end*/
